@@ -11,11 +11,6 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      PLATFORM: iPhoneOS
-      SDK_VERSION: 15.0
-      SDK_PATH: $(xcrun --sdk $PLATFORM --show-sdk-path)
-      TOOLCHAIN_PATH: $(xcrun --sdk $PLATFORM --find clang)
 
     steps:
       - name: Checkout repository
@@ -25,6 +20,13 @@ jobs:
         run: |
           brew install cmake
           cmake --version
+
+      - name: Set up Xcode environment
+        run: |
+          export PLATFORM=iPhoneOS
+          export SDK_VERSION=15.0
+          export SDK_PATH=$(xcrun --sdk $PLATFORM --show-sdk-path)
+          export TOOLCHAIN_PATH=$(xcrun --sdk $PLATFORM --find clang)
 
       - name: Configure CMake and Build Capstone for iOS
         run: |
@@ -40,6 +42,7 @@ jobs:
                 -DCMAKE_C_COMPILER=$TOOLCHAIN_PATH \
                 -DCMAKE_CXX_COMPILER=$TOOLCHAIN_PATH \
                 ..
+
           cmake --build . --config Release -- -j8
 
       - name: Upload artifact
