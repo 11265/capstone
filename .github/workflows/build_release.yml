@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Make script executable
-        run: chmod +x ./build_capstone.sh
+        run: chmod +x ${{ github.workspace }}/build_capstone.sh
 
       - name: Execute build_capstone.sh
-        run: ./build_capstone.sh ARM64
+        run: ${{ github.workspace }}/build_capstone.sh ARM64
