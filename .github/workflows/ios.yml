@@ -3,39 +3,23 @@ name: Build Capstone Static Library
 on:
   push:
     branches:
-      - main  # 触发分支可以根据需要调整
+      - main
 
 jobs:
   build:
-    runs-on: macos-latest  # 使用 macOS 环境运行
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2  # 克隆仓库到工作目录
-
-      - name: Find Capstone.xcodeproj
-        run: |
-          find . -name "Capstone.xcodeproj"
-        id: find_xcodeproj
-        continue-on-error: true
-
-      - name: Install Xcode and Command Line Tools
-        if: steps.find_xcodeproj.outputs.stdout != ''
-        run: |
-          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-          sudo xcodebuild -runFirstLaunch
-          sudo xcodebuild -license accept
-          sudo installer -pkg /Applications/Xcode.app/Contents/Resources/Packages/XcodeSystemResources.pkg -target /
+        uses: actions/checkout@v2
 
       - name: Build Capstone Static Library
-        if: steps.find_xcodeproj.outputs.stdout != ''
         run: |
-          xcodebuild -project ${{ steps.find_xcodeproj.outputs.stdout }} -target CapstoneStatic -configuration Release clean build
+          xcodebuild -project ./xcode/Capstone.xcodeproj -target CapstoneStatic -configuration Release clean build
         env:
-          XCODE_PROJECT_PATH: ${{ steps.find_xcodeproj.outputs.stdout }}
+          XCODE_PROJECT_PATH: ./xcode/Capstone.xcodeproj
 
       - name: Archive artifacts
-        if: steps.find_xcodeproj.outputs.stdout != '' && success()
         uses: actions/upload-artifact@v2
         with:
           name: capstone-static-library
