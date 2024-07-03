@@ -1,4 +1,4 @@
-name: Build Capstone for ARM64
+name: Build iOS Project
 
 on:
   push:
@@ -11,26 +11,29 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      PLATFORM: iPhoneOS
+      SDK_VERSION: 15.0
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
+      
       - name: Install CMake
         run: |
           brew install cmake
           cmake --version
-
-      - name: Set up Xcode environment
+      
+      - name: Set up environment variables
         run: |
-          export PLATFORM=iPhoneOS
-          export SDK_VERSION=15.0
           export SDK_PATH=$(xcrun --sdk $PLATFORM --show-sdk-path)
           export TOOLCHAIN_PATH=$(xcrun --sdk $PLATFORM --find clang)
-
-      - name: Configure CMake and Build Capstone for iOS
+      
+      - name: Create build directory
+        run: mkdir -p build_ios
+      
+      - name: Configure CMake
         run: |
-          mkdir -p build_ios
           cd build_ios
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCAPSTONE_BUILD_DIET=OFF \
@@ -42,12 +45,6 @@ jobs:
                 -DCMAKE_C_COMPILER=$TOOLCHAIN_PATH \
                 -DCMAKE_CXX_COMPILER=$TOOLCHAIN_PATH \
                 ..
-
-          cmake --build . --config Release -- -j8
-
-      - name: Upload artifact
-        if: success()
-        uses: actions/upload-artifact@v2
-        with:
-          name: capstone-arm64-artifact
-          path: build_ios/libcapstone.a
+      
+      - name: Build project
+        run: cmake --build . --config Release -- -j8
