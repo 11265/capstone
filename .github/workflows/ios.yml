@@ -1,26 +1,42 @@
-name: Build Capstone Static Library
+name: Build Capstone for ARM64
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Build Capstone Static Library
+      - name: Set up CMake
         run: |
-          xcodebuild -project ./xcode/Capstone.xcodeproj -target CapstoneStatic -configuration Release clean build
-        env:
-          XCODE_PROJECT_PATH: ./xcode/Capstone.xcodeproj
+          brew install cmake
+          cmake --version
 
-      - name: Archive artifacts
+      - name: Build Capstone for ARM64
+        run: |
+          cmake_flags="-DCMAKE_BUILD_TYPE=Release -DCAPSTONE_BUILD_DIET=OFF -DCAPSTONE_ARM64_SUPPORT=ON"
+          mkdir -p build
+          cd build
+          cmake ${cmake_flags} ..
+          make -j8
+
+      - name: Run tests (if applicable)
+        run: |
+          # Add commands to run tests here if you have test cases set up
+          # For example:
+          # ctest -V
+
+      - name: Upload artifact
+        if: success()
         uses: actions/upload-artifact@v2
         with:
-          name: capstone-static-library
-          path: ${{ env.XCODE_PROJECT_PATH }}/build/Release/libcapstone.a
+          name: capstone-arm64-artifact
+          path: build/libcapstone.a
