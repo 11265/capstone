@@ -20,7 +20,7 @@ jobs:
         continue-on-error: true
 
       - name: Install Xcode and Command Line Tools
-        if: steps.find_xcodeproj.outputs.stdout != ""
+        if: steps.find_xcodeproj.outputs.stdout != ''
         run: |
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           sudo xcodebuild -runFirstLaunch
@@ -28,14 +28,14 @@ jobs:
           sudo installer -pkg /Applications/Xcode.app/Contents/Resources/Packages/XcodeSystemResources.pkg -target /
 
       - name: Build Capstone Static Library
-        if: steps.find_xcodeproj.outputs.stdout != ""
+        if: steps.find_xcodeproj.outputs.stdout != ''
         run: |
           xcodebuild -project ${{ steps.find_xcodeproj.outputs.stdout }} -target CapstoneStatic -configuration Release clean build
         env:
           XCODE_PROJECT_PATH: ${{ steps.find_xcodeproj.outputs.stdout }}
 
       - name: Archive artifacts
-        if: steps.find_xcodeproj.outputs.stdout != "" && success()
+        if: steps.find_xcodeproj.outputs.stdout != '' && success()
         uses: actions/upload-artifact@v2
         with:
           name: capstone-static-library
