@@ -1,50 +1,33 @@
-name: Build Source Release
+name: Build Capstone ARM64
 
-# Trigger whenever a release is created
 on:
-  release:
-    types:
-      - created
+  push:
+    branches:
+      - main  # Replace with your branch name
+  pull_request:
+    branches:
+      - main  # Replace with your branch name
 
 jobs:
   build:
-    name: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use Ubuntu runner
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: archive
-      id: archive
-      run: |
-        VERSION=${{ github.event.release.tag_name }}
-        PKGNAME="capstone-$VERSION"
-        SHASUM=$PKGNAME.tar.xz.sha256
-        mkdir -p /tmp/$PKGNAME
-        mv * /tmp/$PKGNAME
-        mv /tmp/$PKGNAME .
-        TARBALL=$PKGNAME.tar.xz
-        tar cJf $TARBALL $PKGNAME
-        sha256sum $TARBALL > $SHASUM
-        echo "::set-output name=tarball::$TARBALL"
-        echo "::set-output name=shasum::$SHASUM"
-    - name: upload tarball
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./${{ steps.archive.outputs.tarball }}
-        asset_name: ${{ steps.archive.outputs.tarball }}
-        asset_content_type: application/gzip
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake make
 
-    - name: upload shasum
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./${{ steps.archive.outputs.shasum }}
-        asset_name: ${{ steps.archive.outputs.shasum }}
-        asset_content_type: text/plain
+      - name: Build Capstone for ARM64
+        run: |
+          chmod +x ./build_capstone.sh
+          ./build_capstone.sh ARM64
+
+      - name: Archive Capstone Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: capstone-arm64
+          path: path/to/your/build_directory  # Replace with actual path to build directory
