@@ -1,23 +1,29 @@
-name: Build Capstone ARM64
+name: Build Capstone Static Library
 
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - main  # 触发分支可以根据需要调整
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest  # 使用 macOS 环境运行
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2  # 克隆仓库到工作目录
 
-      - name: Make script executable
-        run: chmod +x ${{ github.workspace }}/build_capstone.sh
+      - name: Install Xcode
+        uses: actions/setup-xcode@v2  # 设置 Xcode 环境
 
-      - name: Execute build_capstone.sh
-        run: ${{ github.workspace }}/build_capstone.sh ARM64
+      - name: Build Capstone Static Library
+        run: |
+          xcodebuild -project Capstone.xcodeproj -target CapstoneStatic -configuration Release clean build
+        working-directory: path/to/Capstone.xcodeproj  # 替换成 Capstone.xcodeproj 的路径
+
+      - name: Archive artifacts
+        if: success()
+        uses: actions/upload-artifact@v2
+        with:
+          name: capstone-static-library
+          path: path/to/Capstone.xcodeproj/build/Release/libcapstone.a  # 替换成实际生成的 libcapstone.a 路径
