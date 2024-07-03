@@ -22,7 +22,7 @@ jobs:
 
       - name: Build Capstone for ARM64
         run: |
-          cmake_flags="-DCMAKE_BUILD_TYPE=Release -DCAPSTONE_BUILD_DIET=OFF -DCAPSTONE_ARM64_SUPPORT=ON"
+          cmake_flags="-DCMAKE_BUILD_TYPE=Release -DCAPSTONE_BUILD_DIET=OFF -DCAPSTONE_ARM64_SUPPORT=ON -DCAPSTONE_USE_SYSTEMD=OFF -DCAPSTONE_BUILD_TESTS=OFF"
           mkdir -p build
           cd build
           cmake ${cmake_flags} ..
