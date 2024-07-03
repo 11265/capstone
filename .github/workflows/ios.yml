@@ -13,17 +13,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2  # 克隆仓库到工作目录
 
-      - name: Install Xcode
-        uses: actions/setup-xcode@v2  # 设置 Xcode 环境
+      - name: Find Capstone.xcodeproj
+        run: |
+          find . -name "Capstone.xcodeproj"
+        id: find_xcodeproj
+        continue-on-error: true
+
+      - name: Install Xcode and Command Line Tools
+        if: steps.find_xcodeproj.outputs.stdout != ""
+        run: |
+          sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -runFirstLaunch
+          sudo xcodebuild -license accept
+          sudo installer -pkg /Applications/Xcode.app/Contents/Resources/Packages/XcodeSystemResources.pkg -target /
 
       - name: Build Capstone Static Library
+        if: steps.find_xcodeproj.outputs.stdout != ""
         run: |
-          xcodebuild -project Capstone.xcodeproj -target CapstoneStatic -configuration Release clean build
-        working-directory: path/to/Capstone.xcodeproj  # 替换成 Capstone.xcodeproj 的路径
+          xcodebuild -project ${{ steps.find_xcodeproj.outputs.stdout }} -target CapstoneStatic -configuration Release clean build
+        env:
+          XCODE_PROJECT_PATH: ${{ steps.find_xcodeproj.outputs.stdout }}
 
       - name: Archive artifacts
-        if: success()
+        if: steps.find_xcodeproj.outputs.stdout != "" && success()
         uses: actions/upload-artifact@v2
         with:
           name: capstone-static-library
-          path: path/to/Capstone.xcodeproj/build/Release/libcapstone.a  # 替换成实际生成的 libcapstone.a 路径
+          path: ${{ env.XCODE_PROJECT_PATH }}/build/Release/libcapstone.a
