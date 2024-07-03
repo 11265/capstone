@@ -1,4 +1,4 @@
-name: Build Capstone for iOS
+name: Build Capstone for ARM64
 
 on:
   push:
@@ -11,37 +11,40 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      PLATFORM: iPhoneOS
+      SDK_VERSION: 15.0
+      SDK_PATH: $(xcrun --sdk $PLATFORM --show-sdk-path)
+      TOOLCHAIN_PATH: $(xcrun --sdk $PLATFORM --find clang)
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up CMake
+      - name: Install CMake
         run: |
           brew install cmake
           cmake --version
 
-      - name: Build Capstone for iOS
+      - name: Configure CMake and Build Capstone for iOS
         run: |
-          export PLATFORM="iPhoneOS"
-          export SDK_VERSION="15.0"
-          export SDK_PATH=$(xcrun --sdk $PLATFORM --show-sdk-path)
-          export TOOLCHAIN_PATH=$(xcrun --sdk $PLATFORM --find clang)
-          
-          cmake_flags="-DCMAKE_BUILD_TYPE=Release -DCAPSTONE_BUILD_DIET=OFF -DCAPSTONE_ARM64_SUPPORT=ON -DCAPSTONE_USE_SYSTEMD=OFF -DCAPSTONE_BUILD_TESTS=OFF"
           mkdir -p build_ios
           cd build_ios
-          cmake ${cmake_flags} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_SYSROOT=$SDK_PATH -DCMAKE_C_COMPILER=$TOOLCHAIN_PATH -DCMAKE_CXX_COMPILER=$TOOLCHAIN_PATH ..
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCAPSTONE_BUILD_DIET=OFF \
+                -DCAPSTONE_ARM64_SUPPORT=ON \
+                -DCAPSTONE_USE_SYSTEMD=OFF \
+                -DCAPSTONE_BUILD_TESTS=OFF \
+                -DCMAKE_OSX_ARCHITECTURES=arm64 \
+                -DCMAKE_OSX_SYSROOT=$SDK_PATH \
+                -DCMAKE_C_COMPILER=$TOOLCHAIN_PATH \
+                -DCMAKE_CXX_COMPILER=$TOOLCHAIN_PATH \
+                ..
           make -j8
-
-      - name: Run tests (if applicable)
-        run: |
-          # Add commands to run tests here if you have test cases set up
-          # For example:
-          # ctest -V
 
       - name: Upload artifact
         if: success()
         uses: actions/upload-artifact@v2
         with:
-          name: capstone-ios-arm64-artifact
+          name: capstone-arm64-artifact
           path: build_ios/libcapstone.a
