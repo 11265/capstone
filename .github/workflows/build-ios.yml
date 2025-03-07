@@ -1,0 +1,73 @@
+name: Build iOS Static Library
+
+on:
+  push:
+    branches: [ main, master, develop, '*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    
+    - name: Install CMake
+      run: |
+        brew install cmake
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.4'
+        
+    - name: Download iOS toolchain
+      run: |
+        curl -L https://raw.githubusercontent.com/leetal/ios-cmake/master/ios.toolchain.cmake -o ios.toolchain.cmake
+
+    - name: Build for iOS Device (arm64)
+      run: |
+        mkdir build-ios-device
+        cd build-ios-device
+        cmake .. \
+          -GXcode \
+          -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake \
+          -DPLATFORM=OS64 \
+          -DENABLE_BITCODE=0 \
+          -DENABLE_ARC=0 \
+          -DENABLE_VISIBILITY=1 \
+          -DARCHS="arm64" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DDEPLOYMENT_TARGET=13.0 \
+          -DCMAKE_C_FLAGS="-arch arm64 -Wno-shorten-64-to-32" \
+          -DCMAKE_CXX_FLAGS="-arch arm64 -Wno-shorten-64-to-32" \
+          -DCAPSTONE_ARM64_SUPPORT=ON \
+          -DCAPSTONE_ARM_SUPPORT=ON \
+          -DCAPSTONE_BUILD_TESTS=OFF \
+          -DCAPSTONE_BUILD_SHARED=OFF \
+          -DCAPSTONE_BUILD_STATIC=ON
+
+        cmake --build . --config Release --target capstone
+
+    - name: Package Library
+      run: |
+        mkdir -p universal/lib
+        cp build-ios-device/build/capstone.build/Release-iphoneos/libcapstone.a universal/lib/
+        
+        # 复制头文件
+        mkdir -p universal/include/capstone
+        cp -r include/* universal/include/capstone/
+        
+        # 打包成zip
+        cd universal
+        zip -r ../capstone-ios.zip .
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: capstone-ios
+        path: capstone-ios.zip
