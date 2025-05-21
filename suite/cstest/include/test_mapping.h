@@ -70,6 +70,7 @@ static const cs_enum_id_map test_mode_map[] = {
 	{ .str = "CS_MODE_32", .val = CS_MODE_32 },
 	{ .str = "CS_MODE_64", .val = CS_MODE_64 },
 	{ .str = "CS_MODE_AIX_OS", .val = CS_MODE_AIX_OS },
+	{ .str = "CS_MODE_APPLE_PROPRIETARY", .val = CS_MODE_APPLE_PROPRIETARY },
 	{ .str = "CS_MODE_ARM", .val = CS_MODE_ARM },
 	{ .str = "CS_MODE_BIG_ENDIAN", .val = CS_MODE_BIG_ENDIAN },
 	{ .str = "CS_MODE_BOOKE", .val = CS_MODE_BOOKE },
@@ -213,6 +214,8 @@ static const TestOptionMapEntry test_option_map[] = {
 	  .opt = { .type = CS_OPT_SYNTAX, .val = CS_OPT_SYNTAX_CS_REG_ALIAS } },
 	{ .str = "CS_OPT_SYNTAX_PERCENT",
 	  .opt = { .type = CS_OPT_SYNTAX, .val = CS_OPT_SYNTAX_PERCENT } },
+	{ .str = "CS_OPT_SYNTAX_NO_DOLLAR",
+	  .opt = { .type = CS_OPT_SYNTAX, .val = CS_OPT_SYNTAX_NO_DOLLAR } },
 };
 
 static const cs_enum_id_map cs_enum_map[] = {
@@ -289,11 +292,16 @@ static const cs_enum_id_map cs_enum_map[] = {
 	{ .str = "AARCH64_OP_TLBI", .val = AARCH64_OP_TLBI },
 	{ .str = "AARCH64_OP_TSB", .val = AARCH64_OP_TSB },
 	{ .str = "AARCH64_SFT_ASR", .val = AARCH64_SFT_ASR },
+	{ .str = "AARCH64_SFT_ASR_REG", .val = AARCH64_SFT_ASR_REG },
 	{ .str = "AARCH64_SFT_INVALID", .val = AARCH64_SFT_INVALID },
 	{ .str = "AARCH64_SFT_LSL", .val = AARCH64_SFT_LSL },
+	{ .str = "AARCH64_SFT_LSL_REG", .val = AARCH64_SFT_LSL_REG },
 	{ .str = "AARCH64_SFT_LSR", .val = AARCH64_SFT_LSR },
+	{ .str = "AARCH64_SFT_LSR_REG", .val = AARCH64_SFT_LSR_REG },
 	{ .str = "AARCH64_SFT_MSL", .val = AARCH64_SFT_MSL },
+	{ .str = "AARCH64_SFT_MSL_REG", .val = AARCH64_SFT_MSL_REG },
 	{ .str = "AARCH64_SFT_ROR", .val = AARCH64_SFT_ROR },
+	{ .str = "AARCH64_SFT_ROR_REG", .val = AARCH64_SFT_ROR_REG },
 	{ .str = "AARCH64_SME_OP_INVALID", .val = AARCH64_SME_OP_INVALID },
 	{ .str = "AARCH64_SME_OP_TILE", .val = AARCH64_SME_OP_TILE },
 	{ .str = "AARCH64_SME_OP_TILE_VEC", .val = AARCH64_SME_OP_TILE_VEC },
@@ -316,6 +324,10 @@ static const cs_enum_id_map cs_enum_map[] = {
 	{ .str = "AArch64CC_VS", .val = AArch64CC_VS },
 	{ .str = "ALPHA_OP_IMM", .val = ALPHA_OP_IMM },
 	{ .str = "ALPHA_OP_REG", .val = ALPHA_OP_REG },
+	{ .str = "ARC_GRP_BRANCH_RELATIVE", .val = ARC_GRP_BRANCH_RELATIVE },
+	{ .str = "ARC_GRP_CALL", .val = ARC_GRP_CALL },
+	{ .str = "ARC_GRP_JUMP", .val = ARC_GRP_JUMP },
+	{ .str = "ARC_GRP_RET", .val = ARC_GRP_RET },
 	{ .str = "ARC_OP_IMM", .val = ARC_OP_IMM },
 	{ .str = "ARC_OP_REG", .val = ARC_OP_REG },
 	{ .str = "ARMCC_AL", .val = ARMCC_AL },
@@ -466,10 +478,6 @@ static const cs_enum_id_map cs_enum_map[] = {
 	{ .str = "Alpha_GRP_CALL", .val = Alpha_GRP_CALL },
 	{ .str = "Alpha_GRP_ENDING", .val = Alpha_GRP_ENDING },
 	{ .str = "Alpha_GRP_JUMP", .val = Alpha_GRP_JUMP },
-	{ .str = "ARC_GRP_JUMP", .val = ARC_GRP_JUMP },
-	{ .str = "ARC_GRP_CALL", .val = ARC_GRP_CALL },
-	{ .str = "ARC_GRP_RET", .val = ARC_GRP_RET },
-	{ .str = "ARC_GRP_BRANCH_RELATIVE", .val = ARC_GRP_BRANCH_RELATIVE },
 	{ .str = "BPF_EXT_LEN", .val = BPF_EXT_LEN },
 	{ .str = "BPF_GRP_ALU", .val = BPF_GRP_ALU },
 	{ .str = "BPF_GRP_CALL", .val = BPF_GRP_CALL },
@@ -1671,4 +1679,4 @@ static const cs_enum_id_map cs_enum_map[] = {
 	  .val = 0xffffff }, // For testing
 };
 
-#endif			     // TEST_MAPPING_H
+#endif // TEST_MAPPING_H

@@ -10,7 +10,7 @@
 #include "cstool.h"
 
 #ifdef CAPSTONE_AARCH64_COMPAT_HEADER
-#define CS_ARCH_AARCH64 CS_ARCH_ARM
+#define CS_ARCH_AARCH64 CS_ARCH_ARM64
 #endif
 
 void print_string_hex(const char *comment, unsigned char *str, size_t len);
@@ -67,6 +67,8 @@ static struct {
 		CS_ARCH_PPC, CS_ARCH_MAX }, 0, CS_MODE_PS },
 	{ "+spe", "Enables SPE extension", {
 		CS_ARCH_PPC, CS_ARCH_MAX }, 0, CS_MODE_SPE },
+	{ "+apple", "Enables Apple's proprietary AArch64 instructions (AMX, MUL53, and others).", {
+		CS_ARCH_AARCH64, CS_ARCH_MAX }, 0, CS_MODE_APPLE_PROPRIETARY },
 	{ NULL }
 };
 
@@ -178,6 +180,7 @@ static struct {
 	{ "m68k40", "m68k40", CS_ARCH_M68K, CS_MODE_M68K_040 },
 
 	{ "tms320c64x", "tms320c64x, big endian", CS_ARCH_TMS320C64X, CS_MODE_BIG_ENDIAN },
+	{ "tms320c64xle", "tms320c64x, little endian", CS_ARCH_TMS320C64X, CS_MODE_LITTLE_ENDIAN },
 
 	{ "m6800", "m680x, M6800/2", CS_ARCH_M680X, CS_MODE_M680X_6800 },
 	{ "m6801", "m680x, M6801/3", CS_ARCH_M680X, CS_MODE_M680X_6801 },
@@ -693,13 +696,15 @@ int main(int argc, char **argv)
 			mode |= find_additional_modes(plus, arch);
 
 			err = cs_open(all_archs[i].arch, mode, &handle);
-			if (!err) {
+			if (err == CS_ERR_OK) {
 				enable_additional_options(handle, plus, arch);
 
 				// turn on SKIPDATA mode
 				if (skipdata) {
 					cs_option(handle, CS_OPT_SKIPDATA, CS_OPT_ON);
 				}
+			} else {
+				printf("cs_open() failed with: %s\n", cs_strerror(err));
 			}
 			break;
 		}

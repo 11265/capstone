@@ -20,7 +20,7 @@ endif()
 cmake_policy(SET CMP0042 NEW)
 
 # Check if VERSION is provided externally, otherwise default to 6.0.0
-if(NOT DEFINED PROJECT_VERSION)
+if(NOT DEFINED PROJECT_VERSION OR PROJECT_VERSION STREQUAL "")
     set(PROJECT_VERSION "6.0.0")
 endif()
 
@@ -825,6 +825,12 @@ if(CAPSTONE_BUILD_SHARED_LIBS)
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     )
     target_compile_definitions(capstone PUBLIC CAPSTONE_SHARED)
+    # Build pdb file for dll on Windows
+    if(MSVC)
+        message("Enabling PDB for Windows")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
+    endif()
 endif()
 
 # Fuzzer if this is moved to it's own CMakeLists.txt (as it should be)
@@ -950,6 +956,14 @@ if(CAPSTONE_INSTALL)
             NAMESPACE capstone::
             DESTINATION ${CAPSTONE_CMAKE_CONFIG_INSTALL_DIR}
     )
+
+    if (MSVC AND CAPSTONE_BUILD_SHARED_LIBS)
+        install(FILES
+            $<TARGET_PDB_FILE:capstone_shared>
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+            OPTIONAL
+        )
+    endif()
 
     # uninstall target
     if(NOT TARGET UNINSTALL)

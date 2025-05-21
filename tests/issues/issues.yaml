@@ -5840,3 +5840,264 @@ test_cases:
               - type: MIPS_OP_IMM
                 imm: 0
                 access: CS_AC_READ
+
+  -
+    input:
+      name: "issue 2630 - missing call group for svc, hvc, smc."
+      bytes: [ 0xc2, 0x00, 0x00, 0xd4 ]
+      arch: "CS_ARCH_AARCH64"
+      options: [ CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      -
+        asm_text: "hvc #0x6"
+        details:
+          groups: [ call ]
+  -
+    input:
+      name: "issue 2630 - missing call group for svc, hvc, smc."
+      bytes: [ 0xe3, 0x00, 0x00, 0xd4 ]
+      arch: "CS_ARCH_AARCH64"
+      options: [ CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      -
+        asm_text: "smc #0x7"
+        details:
+          groups: [ call, HasEL3, privilege ]
+  -
+    input:
+      name: "issue 2630 - missing call group for svc, hvc, smc."
+      bytes: [ 0x01, 0x01, 0x00, 0xd4 ]
+      arch: "CS_ARCH_AARCH64"
+      options: [ CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      -
+        asm_text: "svc #0x8"
+        details:
+          groups: [ call, int ]
+  -
+    input:
+      name: "jalr on mips32r2"
+      bytes: [ 0x09, 0xf8, 0x20, 0x03 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS32R2, CS_MODE_LITTLE_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      -
+        asm_text: "jalr $t9"
+
+  -
+    input:
+      name: "ddiv on mips64r2"
+      bytes: [ 0x01, 0x11, 0x00, 0x1e, 0x01, 0x65, 0x00, 0x1a ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS64R2, CS_MODE_BIG_ENDIAN, CS_OPT_SYNTAX_NO_DOLLAR, CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "ddiv zero, t0, s1"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: zero
+              - type: MIPS_OP_REG
+                reg: t0
+              - type: MIPS_OP_REG
+                reg: s1
+      - asm_text: "div zero, t3, a1"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: zero
+              - type: MIPS_OP_REG
+                reg: t3
+              - type: MIPS_OP_REG
+                reg: a1
+
+  - input:
+      name: "dclo on mips64r6 - Mips32r6_64r632"
+      bytes: [ 0x00, 0xa0, 0x30, 0x53 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS64R6, CS_MODE_BIG_ENDIAN, CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "dclo $a2, $a1"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: a2
+              - type: MIPS_OP_REG
+                reg: a1
+
+  - input:
+      name: "SIGRIE on mips32r6 - Mips32r6_64r632"
+      bytes: [ 0x04, 0x17, 0x0d, 0x53 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS32R6, CS_MODE_BIG_ENDIAN, CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "sigrie 0xd53"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_IMM
+                imm: 0xd53
+
+  - input:
+      name: "mips32r6 - Mips32r6_64r6_Ambiguous32"
+      bytes: [ 0x18, 0x01, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x18, 0x81, 0x00, 0x00 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS32R6, CS_MODE_BIG_ENDIAN ]
+      address: 0x1000
+    expected:
+      insns:
+      - asm_text: "blezalc $at, 4100"
+      - asm_text: "blez $zero, 4104"
+      - asm_text: "bgeuc $a0, $at, 4108"
+
+  - input:
+      name: "mips64r6 - Mips32r6_64r6_Ambiguous32"
+      bytes: [ 0x18, 0x01, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x18, 0x81, 0x00, 0x00 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS64R6, CS_MODE_BIG_ENDIAN ]
+      address: 0x1000
+    expected:
+      insns:
+      - asm_text: "blezalc $at, 4100"
+      - asm_text: "blez $zero, 4104"
+      - asm_text: "bgeuc $a0, $at, 4108"
+
+  - input:
+      name: "jr/jrc/ ra & div/divu zero on mips16"
+      bytes: [ 0xe8, 0x20,  0xe8, 0xa0,  0xeb, 0x5a,  0xeb, 0x5b,  0x63, 0x1e,  0xf0, 0x64, 0x63, 0x05 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS16, CS_MODE_BIG_ENDIAN, CS_OPT_SYNTAX_NO_DOLLAR, CS_OPT_DETAIL ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "jr ra"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: ra
+      - asm_text: "jrc ra"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: ra
+      - asm_text: "div zero, v1, v0"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: zero
+              - type: MIPS_OP_REG
+                reg: v1
+              - type: MIPS_OP_REG
+                reg: v0
+      - asm_text: "divu zero, v1, v0"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: zero
+              - type: MIPS_OP_REG
+                reg: v1
+              - type: MIPS_OP_REG
+                reg: v0
+      - asm_text: "addiu sp, 0x1e"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: sp
+              - type: MIPS_OP_IMM
+                imm: 0x1e
+      - asm_text: "addiu sp, 0x2065"
+        details:
+          mips:
+            operands:
+              - type: MIPS_OP_REG
+                reg: sp
+              - type: MIPS_OP_IMM
+                imm: 0x2065
+  - input:
+      name: "Test mips32 DSP"
+      bytes: [ 0x7e,0x32,0x83,0x11,0x7e,0x53,0x8d,0x11,0x7e,0x74,0x95,0x51,0x7e,0x95,0x9b,0xd1 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS32, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "precrq.qb.ph    $s0, $s1, $s2"
+      - asm_text: "precrq.ph.w     $s1, $s2, $s3"
+      - asm_text: "precrq_rs.ph.w  $s2, $s3, $s4"
+      - asm_text: "precrqu_s.qb.ph $s3, $s4, $s5"
+
+  - input:
+      name: "Test microMips32r3 DSP"
+      bytes: [ 0x00,0xa4,0x1c,0x0d,0x00,0xa4,0x1b,0x05,0x00,0x65,0x42,0xbc,0x00,0x64,0x92,0xbc ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MICRO32R3, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "addq_s.ph   $v1, $a0, $a1"
+      - asm_text: "addq_s.w    $v1, $a0, $a1"
+      - asm_text: "dpaq_s.w.ph $ac1, $a1, $v1"
+      - asm_text: "dpaq_sa.l.w $ac2, $a0, $v1"
+
+  - input:
+      name: "Test nanomips BNEC[16] (not available in NMS) - Conflict_Space16"
+      bytes: [ 0xd8, 0xf6 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_NANOMIPS, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "bnec $a3, $s1, 14"
+
+  - input:
+      name: "Test mips64r6 - Mips32r6_64r6_BranchZero32"
+      bytes: [ 0x58, 0x63, 0x00, 0x00, 0x5C, 0x63, 0x00, 0x00 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS64R6, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "bgezc  $v1, 4"
+      - asm_text: "bltzc  $v1, 8"
+
+  - input:
+      name: "Test mips32r6 - Mips32r6_64r6_BranchZero32"
+      bytes: [ 0x58, 0x63, 0x00, 0x00, 0x5C, 0x63, 0x00, 0x00 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_MIPS32R6, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "bgezc  $v1, 4"
+      - asm_text: "bltzc  $v1, 8"
+
+  - input:
+      name: "Test nanomips jalrc rd rt is not beqc rd rt 0"
+      bytes: [ 0xd9, 0x90 ]
+      arch: "CS_ARCH_MIPS"
+      options: [ CS_MODE_NANOMIPS, CS_MODE_BIG_ENDIAN ]
+      address: 0x0
+    expected:
+      insns:
+      - asm_text: "jalrc $ra, $t0"

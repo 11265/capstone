@@ -236,8 +236,6 @@ bool Mips_getFeatureBits(unsigned int mode, unsigned int feature)
 		}
 		return true;
 	}
-	case Mips_FeatureUseIndirectJumpsHazard:
-		return true;
 	default:
 		return false;
 	}
@@ -1458,7 +1456,9 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 	bool IsMicroMips = Mips_getFeatureBits(mode, Mips_FeatureMicroMips);
 	bool IsNanoMips = Mips_getFeatureBits(mode, Mips_FeatureNanoMips);
 	bool IsMips32r6 = Mips_getFeatureBits(mode, Mips_FeatureMips32r6);
+	bool IsMips64r6 = Mips_getFeatureBits(mode, Mips_FeatureMips64r6);
 	bool IsMips2 = Mips_getFeatureBits(mode, Mips_FeatureMips2);
+	bool IsMips16 = Mips_getFeatureBits(mode, Mips_FeatureMips16);
 	bool IsCnMips = Mips_getFeatureBits(mode, Mips_FeatureCnMips);
 	bool IsCnMipsP = Mips_getFeatureBits(mode, Mips_FeatureCnMipsP);
 	bool IsFP64 = Mips_getFeatureBits(mode, Mips_FeatureFP64Bit);
@@ -1501,6 +1501,14 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 			// Calling the auto-generated decoder function for NanoMips
 			// 16-bit instructions.
 			Result = decodeInstruction_2(DecoderTableNanoMips16,
+						     Instr, Insn, Address,
+						     NULL);
+			if (Result != MCDisassembler_Fail) {
+				*Size = 2;
+				return Result;
+			}
+
+			Result = decodeInstruction_2(DecoderTableNanoMips_Conflict_Space16,
 						     Instr, Insn, Address,
 						     NULL);
 			if (Result != MCDisassembler_Fail) {
@@ -1550,6 +1558,14 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 
 		if (IsMips32r6) {
 			// Calling the auto-generated decoder function.
+			Result = decodeInstruction_4(DecoderTableMicroMipsR6_Ambiguous32,
+						     Instr, Insn, Address,
+						     NULL);
+			if (Result != MCDisassembler_Fail) {
+				*Size = 4;
+				return Result;
+			}
+
 			Result = decodeInstruction_4(DecoderTableMicroMipsR632,
 						     Instr, Insn, Address,
 						     NULL);
@@ -1561,6 +1577,13 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 
 		// Calling the auto-generated decoder function.
 		Result = decodeInstruction_4(DecoderTableMicroMips32, Instr,
+					     Insn, Address, NULL);
+		if (Result != MCDisassembler_Fail) {
+			*Size = 4;
+			return Result;
+		}
+
+		Result = decodeInstruction_4(DecoderTableMicroMipsDSP32, Instr,
 					     Insn, Address, NULL);
 		if (Result != MCDisassembler_Fail) {
 			*Size = 4;
@@ -1584,6 +1607,28 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 		// unconditionally branched over.
 		*Size = 2;
 		return MCDisassembler_Fail;
+	}
+
+	if (IsMips16) {
+		Result = readInstruction32(Bytes, BytesLen, Address, Size,
+					   &Insn, IsBigEndian, IsMicroMips);
+		if (Result != MCDisassembler_Fail) {
+			Result = decodeInstruction_4(DecoderTable32, Instr, Insn, Address,
+						     NULL);
+			if (Result != MCDisassembler_Fail) {
+				*Size = 4;
+				return Result;
+			}
+		}
+
+		Result = readInstruction16(Bytes, BytesLen, Address, Size,
+					   &Insn, IsBigEndian);
+		if (Result == MCDisassembler_Fail) {
+			return MCDisassembler_Fail;
+		}
+
+		*Size = 2;
+		return decodeInstruction_2(DecoderTable16, Instr, Insn, Address, NULL);
 	}
 
 	// Attempt to read the instruction so that we can attempt to decode it. If
@@ -1618,8 +1663,18 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 			return Result;
 	}
 
-	if (IsMips32r6) {
+	if (IsMips32r6 || IsMips64r6) {
+		Result = decodeInstruction_4(DecoderTableMips32r6_64r6_BranchZero32, Instr,
+					     Insn, Address, NULL);
+		if (Result != MCDisassembler_Fail)
+			return Result;
+
 		Result = decodeInstruction_4(DecoderTableMips32r6_64r632, Instr,
+					     Insn, Address, NULL);
+		if (Result != MCDisassembler_Fail)
+			return Result;
+
+		Result = decodeInstruction_4(DecoderTableMips32r6_64r6_Ambiguous32, Instr,
 					     Insn, Address, NULL);
 		if (Result != MCDisassembler_Fail)
 			return Result;
@@ -1660,6 +1715,11 @@ static DecodeStatus getInstruction(MCInst *Instr, uint64_t *Size, const uint8_t 
 			return Result;
 	}
 
+	Result = decodeInstruction_4(DecoderTableMipsDSP32, Instr, Insn,
+				     Address, NULL);
+	if (Result != MCDisassembler_Fail)
+		return Result;
+
 	// Calling the auto-generated decoder function.
 	Result = decodeInstruction_4(DecoderTableMips32, Instr, Insn, Address,
 				     NULL);
@@ -1673,7 +1733,15 @@ static DecodeStatus DecodeCPU16RegsRegisterClass(MCInst *Inst, unsigned RegNo,
 						 uint64_t Address,
 						 const void *Decoder)
 {
-	return MCDisassembler_Fail;
+	if (RegNo > 7)
+		return MCDisassembler_Fail;
+
+	if (RegNo < 2)
+		RegNo += 16;
+
+	unsigned Reg = getReg(Inst, Mips_GPR32RegClassID, RegNo);
+	MCOperand_CreateReg0(Inst, (Reg));
+	return MCDisassembler_Success;
 }
 
 static DecodeStatus DecodeGPR64RegisterClass(MCInst *Inst, unsigned RegNo,
