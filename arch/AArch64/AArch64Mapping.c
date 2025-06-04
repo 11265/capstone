@@ -670,7 +670,7 @@ static void AArch64_add_not_defined_ops(MCInst *MI, const SStream *OS)
 	case AARCH64_INS_ALIAS_SMSTART:
 	case AARCH64_INS_ALIAS_SMSTOP: {
 		const char *disp_off = NULL;
-		disp_off = strstr(OS->buffer, " za");
+		disp_off = strstr(OS->buffer, "smstart\tza");
 		if (disp_off) {
 			aarch64_sysop sysop = { 0 };
 			sysop.alias.svcr = AARCH64_SVCR_SVCRZA;
@@ -679,7 +679,7 @@ static void AArch64_add_not_defined_ops(MCInst *MI, const SStream *OS)
 						  AARCH64_OP_SYSALIAS);
 			return;
 		}
-		disp_off = strstr(OS->buffer, " sm");
+		disp_off = strstr(OS->buffer, "smstart\tsm");
 		if (disp_off) {
 			aarch64_sysop sysop = { 0 };
 			sysop.alias.svcr = AARCH64_SVCR_SVCRSM;
@@ -821,11 +821,14 @@ bool AArch64_getInstruction(csh handle, const uint8_t *code, size_t code_len,
 			    void *info)
 {
 	AArch64_init_cs_detail(MI);
-	bool Result = AArch64_LLVM_getInstruction(handle, code, code_len, MI,
+	DecodeStatus Result = AArch64_LLVM_getInstruction(handle, code, code_len, MI,
 						  size, address,
-						  info) != MCDisassembler_Fail;
+						  info);
 	AArch64_set_instr_map_data(MI);
-	return Result;
+	if (Result == MCDisassembler_SoftFail) {
+		MCInst_setSoftFail(MI);
+	}
+	return Result != MCDisassembler_Fail;
 }
 
 /// Patches the register names with Capstone specific alias.
