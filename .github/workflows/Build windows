@@ -16,27 +16,22 @@ jobs:
       with:
         submodules: recursive
 
-    # 安装 CMake
-    - name: Install CMake
+    # CMake（GitHub runner其实自带，但这里保险）
+    - name: Setup CMake
       uses: lukka/get-cmake@latest
 
-    # 配置工程（等价 iOS cmake 参数）
-    - name: Configure (MSVC x64)
+    # 配置（MSVC）
+    - name: Configure
       run: |
-        mkdir build
-        cd build
-
-        cmake .. ^
+        cmake -S . -B build ^
           -G "Visual Studio 17 2022" ^
           -A x64 ^
           -DCMAKE_BUILD_TYPE=Release ^
-          -DCAPSTONE_ARM64_SUPPORT=ON ^
-          -DCAPSTONE_ARM_SUPPORT=ON ^
           -DCAPSTONE_BUILD_TESTS=OFF ^
           -DCAPSTONE_BUILD_SHARED=OFF ^
           -DCAPSTONE_BUILD_STATIC=ON ^
-          -DCMAKE_C_FLAGS="/wd4244" ^
-          -DCMAKE_CXX_FLAGS="/wd4244"
+          -DCAPSTONE_ARM_SUPPORT=ON ^
+          -DCAPSTONE_ARM64_SUPPORT=ON
 
     # 编译
     - name: Build
@@ -44,17 +39,17 @@ jobs:
         cmake --build build --config Release --target capstone
 
     # 打包
-    - name: Package Library
+    - name: Package
       run: |
         mkdir package
 
         copy build\Release\capstone.lib package\
 
-        mkdir package\include\capstone
-        xcopy include\* package\include\capstone\ /E /I /Y
+        mkdir package\include
+        xcopy include package\include\ /E /I /Y
 
     # 压缩
-    - name: Zip Artifact
+    - name: Archive
       run: |
         powershell Compress-Archive -Path package\* -DestinationPath capstone-windows.zip
 
