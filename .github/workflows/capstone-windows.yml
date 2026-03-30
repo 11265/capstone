@@ -38,8 +38,22 @@ jobs:
     - name: Package Library
       run: |
         mkdir -p universal/lib
-        # MSVC 编译的静态库默认输出到 Release 文件夹下
-        cp build-windows/Release/capstone.lib universal/lib/
+        # Capstone 静态库的名称可能是 capstone_static.lib，并且在 Release 目录下
+        if (Test-Path "build-windows/Release/capstone.lib") {
+            cp build-windows/Release/capstone.lib universal/lib/
+        } elseif (Test-Path "build-windows/Release/capstone_static.lib") {
+            cp build-windows/Release/capstone_static.lib universal/lib/capstone.lib
+        } else {
+            # 搜索所有的 .lib 文件以确定生成的库名
+            $libFile = Get-ChildItem -Path build-windows -Filter "*.lib" -Recurse | Select-Object -First 1
+            if ($libFile) {
+                Write-Host "Found lib file: $($libFile.FullName)"
+                cp $libFile.FullName universal/lib/capstone.lib
+            } else {
+                Write-Error "Could not find any .lib files!"
+                exit 1
+            }
+        }
         
         # 复制头文件
         mkdir -p universal/include/capstone
